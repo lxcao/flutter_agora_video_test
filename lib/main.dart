@@ -1,148 +1,94 @@
 import 'package:flutter/material.dart';
-import 'dart:async';
-import 'package:flutter/foundation.dart';
-import 'package:agora_rtc_engine/rtc_engine.dart';
-import 'package:agora_rtc_engine/rtc_local_view.dart' as RtcLocalView;
-import 'package:agora_rtc_engine/rtc_remote_view.dart' as RtcRemoteView;
-import 'package:permission_handler/permission_handler.dart';
 
-/// Define App ID and Token
-const APP_ID = '9c6757926fd7459da9ef0bee50b28764';
-const Channel_Name = 'testChannel';
-const Token =
-    '0069c6757926fd7459da9ef0bee50b28764IACzGmIdQRTNebT9yUEaPbTcIAcusVfYuzUHXzVhVeTh43ZXrgMAAAAAEACJVdSDYFK1YgEAAQBgUrVi';
+import 'examples/advanced/index.dart';
+import 'examples/basic/index.dart';
+import 'config/agora.config.dart' as config;
+import 'examples/log_sink.dart';
 
-void main() {
-  runApp(MyApp());
-}
+void main() => runApp(const MyApp());
 
+/// This widget is the root of your application.
 class MyApp extends StatefulWidget {
+  /// Construct the [MyApp]
+  const MyApp({Key? key}) : super(key: key);
+
   @override
-  _MyAppState createState() => _MyAppState();
+  State<MyApp> createState() => _MyAppState();
 }
 
-// App state class
 class _MyAppState extends State<MyApp> {
-  bool _joined = false;
-  int _remoteUid = 0;
-  bool _switch = false;
+  final _data = [...basic, ...advanced];
 
-  @override
-  void initState() {
-    super.initState();
-    initPlatformState();
+  bool _isConfigInvalid() {
+    return config.appId == '<YOUR_APP_ID>' ||
+        config.token == '<YOUR_TOKEN>' ||
+        config.channelId == '<YOUR_CHANNEL_ID>';
   }
 
-  // Init the app
-  Future<void> initPlatformState() async {
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      await [Permission.microphone, Permission.camera].request();
-    }
-
-    // Create RTC client instance
-    RtcEngineContext context = RtcEngineContext(APP_ID);
-    var engine = await RtcEngine.createWithContext(context);
-    // Define event handling logic
-    engine.setEventHandler(RtcEngineEventHandler(
-        joinChannelSuccess: (String channel, int uid, int elapsed) {
-      print('joinChannelSuccess ${channel} ${uid}');
-      setState(() {
-        _joined = true;
-      });
-    }, userJoined: (int uid, int elapsed) {
-      print('userJoined ${uid}');
-      setState(() {
-        _remoteUid = uid;
-      });
-    }, userOffline: (int uid, UserOfflineReason reason) {
-      print('userOffline ${uid}');
-      setState(() {
-        _remoteUid = 0;
-      });
-    }));
-    // Enable video
-    await engine.enableVideo();
-    // Join channel with channel name as 123
-    await engine.joinChannel(Token, '123', null, 0);
-  }
-
-  // Build UI
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
       home: Scaffold(
         appBar: AppBar(
-          title: const Text('Flutter example app'),
+          title: const Text('APIExample'),
         ),
-        body: Stack(
-          children: [
-            Center(
-              child: _switch ? _renderRemoteVideo() : _renderLocalPreview(),
-            ),
-            Align(
-              alignment: Alignment.topLeft,
-              child: Container(
-                width: 100,
-                height: 100,
-                color: Colors.blue,
-                child: GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _switch = !_switch;
-                    });
-                  },
-                  child: Center(
-                    child:
-                        _switch ? _renderLocalPreview() : _renderRemoteVideo(),
-                  ),
-                ),
+        body: _isConfigInvalid()
+            ? const InvalidConfigWidget()
+            : ListView.builder(
+                itemCount: _data.length,
+                itemBuilder: (context, index) {
+                  return _data[index]['widget'] == null
+                      ? Ink(
+                          color: Colors.grey,
+                          child: ListTile(
+                            title: Text(_data[index]['name'] as String,
+                                style: const TextStyle(
+                                    fontSize: 24, color: Colors.white)),
+                          ),
+                        )
+                      : ListTile(
+                          onTap: () {
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => Scaffold(
+                                          appBar: AppBar(
+                                            title: Text(
+                                                _data[index]['name'] as String),
+                                            // ignore: prefer_const_literals_to_create_immutables
+                                            actions: [const LogActionWidget()],
+                                          ),
+                                          body:
+                                              _data[index]['widget'] as Widget?,
+                                        )));
+                          },
+                          title: Text(
+                            _data[index]['name'] as String,
+                            style: const TextStyle(
+                                fontSize: 24, color: Colors.black),
+                          ),
+                        );
+                },
               ),
-            ),
-          ],
-        ),
       ),
     );
   }
+}
 
-  // Local video rendering
-  Widget _renderLocalPreview() {
-    if (_joined && defaultTargetPlatform == TargetPlatform.android ||
-        _joined && defaultTargetPlatform == TargetPlatform.iOS) {
-      return RtcLocalView.SurfaceView();
-    }
+/// This widget is used to indicate the configuration is invalid
+class InvalidConfigWidget extends StatelessWidget {
+  /// Construct the [InvalidConfigWidget]
+  const InvalidConfigWidget({Key? key}) : super(key: key);
 
-    if (_joined && defaultTargetPlatform == TargetPlatform.windows ||
-        _joined && defaultTargetPlatform == TargetPlatform.macOS) {
-      return RtcLocalView.TextureView();
-    } else {
-      return Text(
-        'Please join channel first',
-        textAlign: TextAlign.center,
-      );
-    }
-  }
-
-  // Remote video rendering
-  Widget _renderRemoteVideo() {
-    if (_remoteUid != 0 && defaultTargetPlatform == TargetPlatform.android ||
-        _remoteUid != 0 && defaultTargetPlatform == TargetPlatform.iOS) {
-      return RtcRemoteView.SurfaceView(
-        uid: _remoteUid,
-        channelId: "123",
-      );
-    }
-
-    if (_remoteUid != 0 && defaultTargetPlatform == TargetPlatform.windows ||
-        _remoteUid != 0 && defaultTargetPlatform == TargetPlatform.macOS) {
-      return RtcRemoteView.TextureView(
-        uid: _remoteUid,
-        channelId: "123",
-      );
-    } else {
-      return Text(
-        'Please wait remote user join',
-        textAlign: TextAlign.center,
-      );
-    }
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.red,
+      child: const Text(
+          'Make sure you set the correct appId, token, channelId, etc.. in the lib/config/agora.config.dart file.'),
+    );
   }
 }

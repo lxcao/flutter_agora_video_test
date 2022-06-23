@@ -45,5 +45,9 @@
 	<false/>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Agora Camera Usage</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Agora Microphone Usage</string>
 </dict>
 </plist>
