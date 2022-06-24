@@ -20,9 +20,10 @@ class _MyAppState extends State<MyApp> {
   final _data = [...basic, ...advanced];
 
   bool _isConfigInvalid() {
-    return config.appId == '<YOUR_APP_ID>' ||
-        config.token == '<YOUR_TOKEN>' ||
-        config.channelId == '<YOUR_CHANNEL_ID>';
+    return config.appId == '9c6757926fd7459da9ef0bee50b28764' ||
+        config.token ==
+            '0069c6757926fd7459da9ef0bee50b28764IACzGmIdQRTNebT9yUEaPbTcIAcusVfYuzUHXzVhVeTh43ZXrgMAAAAAEACJVdSDYFK1YgEAAQBgUrVi' ||
+        config.channelId == 'testChannel';
   }
 
   @override
